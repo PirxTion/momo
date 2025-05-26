@@ -1,3 +1,28 @@
+// Add this at the beginning of docs/src/filter_data.js
+window.allLaureateDataPromise = fetch('../nobel_laureates_data.csv') // Adjusted path
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        return response.text();
+    })
+    .then(csvText => {
+        const lines = csvText.trim().split('\n');
+        const headers = lines[0].split(',').map(header => header.trim());
+        return lines.slice(1).map(line => {
+            const values = line.split(',');
+            let obj = {};
+            headers.forEach((header, index) => {
+                obj[header] = values[index] ? values[index].trim() : undefined;
+            });
+            return obj;
+        }).filter(obj => obj.year); // Basic filter for valid rows
+    })
+    .catch(error => {
+        console.error("Failed to load Nobel laureate data:", error);
+        return []; // Return empty array on error to prevent other scripts from breaking
+    });
+
 // Timeline Slider
 const timelineSlider = document.getElementById('timeline-slider');
 const currentYearDisplay = document.getElementById('current-year');

@@ -1,17 +1,7 @@
 am5.ready(function () {
     // Global variable to be updated by map
     window.selectedCountryPie = "All";
-
-    // Mock data — grouped by type + country
-    const allData = [
-        { type: "Physics", country: "United States", value: 5 },
-        { type: "Chemistry", country: "United States", value: 2 },
-        { type: "Peace", country: "Germany", value: 3 },
-        { type: "Literature", country: "France", value: 4 },
-        { type: "Peace", country: "France", value: 1 },
-        { type: "Physics", country: "Germany", value: 2 },
-        { type: "Physics", country: "UK", value: 3 }
-    ];
+    let allNobelData = []; // To store data once loaded
 
     const root = am5.Root.new("piechartdiv");
     root.setThemes([am5themes_Animated.new(root)]);
@@ -34,27 +24,26 @@ am5.ready(function () {
         const dropdown = document.getElementById("country-pie-select");
         const selected = dropdown.value;
         const country = selected === "map" ? window.selectedCountryPie : selected;
-    
-        const filtered = allData.filter((d) =>
-            country === "All" || d.country === country
+
+        // Use allNobelData and new field names, exclude organizations
+        const filtered = allNobelData.filter((d) =>
+            (country === "All" || d.bornCountry === country) && d.gender !== 'org'
         );
-    
+
         const grouped = {};
         filtered.forEach(d => {
-            grouped[d.type] = (grouped[d.type] || 0) + d.value;
+            // Group by actual category from CSV, count each laureate as 1
+            grouped[d.category] = (grouped[d.category] || 0) + 1;
         });
-    
+
         const chartData = Object.entries(grouped).map(([category, value]) => ({
             category,
             value
         }));
-    
+
         series.data.setAll(chartData);
         series.appear(1000, 100);
     };
-
-    // Initial render
-    window.updatePieChart();
 
     // Dropdown listener
     document.getElementById("country-pie-select").addEventListener("change", function () {
@@ -62,4 +51,16 @@ am5.ready(function () {
         window.selectedCountryPie = val === "map" ? window.selectedCountryPie : val;
         window.updatePieChart();
     });
+
+    // Load data using the global promise
+    if (window.allLaureateDataPromise) {
+        window.allLaureateDataPromise.then(data => {
+            allNobelData = data; // Store the loaded data
+            window.updatePieChart(); // Initial render after data is loaded
+        }).catch(error => console.error("Error loading Nobel data for pie chart:", error));
+    } else {
+        console.error("Pie Chart: Global Nobel data promise not available.");
+        // Optionally, render with empty data or show an error message
+        window.updatePieChart(); // Attempt to render, will use empty allNobelData
+    }
 });

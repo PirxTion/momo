@@ -1,22 +1,39 @@
     // Controller
-window.selectedCountryAgeHistogram = "All"; // Initialize for Age Histogram
-
 window.setSelectedCountry = function (country) {
     if (window.selectedCountry !== undefined) {
         window.selectedCountry = country;
-        document.getElementById("country-select").value = "map";
-        if (window.updateBarChart) updateBarChart();
+        // Ensure the dropdown for bar chart reflects the map selection
+        const barChartCountrySelect = document.getElementById("country-select");
+        if (barChartCountrySelect) {
+            barChartCountrySelect.value = "map";
+        }
+        if (window.updateBarChart) {
+            updateBarChart();
+        }
     }
 
     if (window.selectedCountryPie !== undefined) {
         window.selectedCountryPie = country;
-        document.getElementById("country-pie-select").value = "map";
-        if (window.updatePieChart) updatePieChart();
+        // Ensure the dropdown for pie chart reflects the map selection
+        const pieChartCountrySelect = document.getElementById("country-pie-select");
+        if (pieChartCountrySelect) {
+            pieChartCountrySelect.value = "map";
+        }
+        if (window.updatePieChart) {
+            updatePieChart();
+        }
     }
 
-    if (window.selectedCountryAgeHistogram !== undefined) { // Check if the global var is set
+    // Add logic for the new age histogram
+    if (window.selectedCountryAgeHistogram !== undefined) {
         window.selectedCountryAgeHistogram = country;
-        // No specific dropdown for age histogram country to update via "map" selection
-        if (window.updateAgeHistogram) window.updateAgeHistogram();
+        // Ensure the dropdown for age histogram reflects the map selection
+        const ageHistogramCountrySelect = document.getElementById("country-age-select");
+        if (ageHistogramCountrySelect) {
+            ageHistogramCountrySelect.value = "map";
+        }
+        if (window.updateAgeHistogram) {
+            updateAgeHistogram();
+        }
     }
-    };
+};

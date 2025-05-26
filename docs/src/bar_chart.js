@@ -1,7 +1,16 @@
 am5.ready(function () {
     // Make it global so the map can access it
     window.selectedCountry = "All";
-    let allNobelData = []; // To store data once loaded
+
+    // Mock data — replace this with real data or load from a file
+    const allData = [
+        { year: "2010", type: "Physics", country: "United States", count: 5 },
+        { year: "2010", type: "Peace", country: "Germany", count: 2 },
+        { year: "2011", type: "Physics", country: "United States", count: 3 },
+        { year: "2011", type: "Peace", country: "United States", count: 1 },
+        { year: "2012", type: "Chemistry", country: "Germany", count: 4 },
+        { year: "2012", type: "Literature", country: "France", count: 3 }
+    ];
 
     const root = am5.Root.new("barchartdiv");
     root.setThemes([am5themes_Animated.new(root)]);
@@ -49,17 +58,14 @@ am5.ready(function () {
         const countrySelectValue = document.getElementById("country-select").value;
         const country = countrySelectValue === "map" ? window.selectedCountry : countrySelectValue;
 
-        // Use allNobelData and new field names
-        const filtered = allNobelData.filter((d) => {
-            return (selectedType === "All" || d.category === selectedType) &&
-                   (country === "All" || d.bornCountry === country);
+        const filtered = allData.filter((d) => {
+            return (selectedType === "All" || d.type === selectedType) &&
+                   (country === "All" || d.country === country);
         });
 
         const grouped = {};
         filtered.forEach((d) => {
-            const year = d.year;
-            // Count each laureate as 1
-            grouped[year] = (grouped[year] || 0) + 1;
+            grouped[d.year] = (grouped[d.year] || 0) + d.count;
         });
 
         const chartData = Object.entries(grouped).map(([year, count]) => ({
@@ -69,22 +75,10 @@ am5.ready(function () {
 
         xAxis.data.setAll(chartData);
         series.data.setAll(chartData);
-        series.appear(1000);
-        chart.appear(1000, 100);
     };
 
     document.getElementById("type-select").addEventListener("change", window.updateBarChart);
     document.getElementById("country-select").addEventListener("change", window.updateBarChart);
 
-    // Load data using the global promise
-    if (window.allLaureateDataPromise) {
-        window.allLaureateDataPromise.then(data => {
-            allNobelData = data; // Store the loaded data
-            window.updateBarChart(); // Initial render after data is loaded
-        }).catch(error => console.error("Error loading Nobel data for bar chart:", error));
-    } else {
-        console.error("Bar Chart: Global Nobel data promise not available.");
-        // Optionally, render with empty data or show an error message
-        window.updateBarChart(); // Attempt to render, will use empty allNobelData
-    }
+    window.updateBarChart(); // Initial render
 });

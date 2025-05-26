@@ -101,8 +101,20 @@
 
         <!-- Age Histogram -->
         <div class="chart-box">
-            <h3>Age at Award Distribution</h3>
-            <div id="agehistogramdiv"></div>
+            <h3>Age at Award Histogram</h3>
+            <div class="filter-controls">
+                <label for="country-age-select">Country:</label>
+                <select id="country-age-select">
+                    <option value="All">All</option>
+                    <option value="map" disabled>(Selected from map)</option>
+                    <option value="USA">USA</option>
+                    <option value="Germany">Germany</option>
+                    <option value="Canada">Canada</option>
+                    <option value="UK">UK</option>
+                    <!-- Add other countries from mock data if desired -->
+                </select>
+            </div>
+            <div id="agehistogramdiv" style="height: 400px; width: 100%;"></div>
         </div>
     </div>
 

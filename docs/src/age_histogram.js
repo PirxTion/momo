@@ -1,168 +1,149 @@
 am5.ready(function () {
-    // Global variable to be updated by map/controller
-    window.selectedCountryAgeHistogram = "All"; // Or a suitable default
+    // Global variable to be updated by map or dropdown
+    window.selectedCountryAgeHistogram = "All";
 
-    // Placeholder for all Nobel laureate data (to be loaded from CSV)
-    let allNobelData = []; 
+    // Mock data for age histogram
+    const allLaureateData = [
+        { name: "Laureate A", awardYear: 2020, bornYear: 1960, country: "USA" }, // Age 60
+        { name: "Laureate B", awardYear: 2018, bornYear: 1950, country: "USA" }, // Age 68
+        { name: "Laureate C", awardYear: 2022, bornYear: 1970, country: "Canada" }, // Age 52
+        { name: "Laureate D", awardYear: 2021, bornYear: 1985, country: "Germany" }, // Age 36
+        { name: "Laureate E", awardYear: 2019, bornYear: 1975, country: "USA" }, // Age 44
+        { name: "Laureate F", awardYear: 2023, bornYear: 1963, country: "UK" }, // Age 60
+        { name: "Laureate G", awardYear: 2020, bornYear: 1955, country: "Canada" }, // Age 65
+        { name: "Laureate H", awardYear: 2017, bornYear: 1940, country: "Germany" }, // Age 77
+        { name: "Laureate I", awardYear: 2022, bornYear: 1990, country: "USA" }, // Age 32
+        { name: "Laureate J", awardYear: 2020, bornYear: 1980, country: "UK" }, // Age 40
+        { name: "Laureate K", awardYear: 2018, bornYear: 1965, country: "Canada" }, // Age 53
+        { name: "Laureate L", awardYear: 2019, bornYear: 1958, country: "Germany" }, // Age 61
+        { name: "Laureate M", awardYear: 2023, bornYear: 1978, country: "USA" }, // Age 45
+        { name: "Laureate N", awardYear: 2021, bornYear: 1968, country: "UK" }, // Age 53
+        { name: "Laureate O", awardYear: 2022, bornYear: 1982, country: "Canada" }, // Age 40
+    ];
 
-    // Initialize the amCharts Root element
     const root = am5.Root.new("agehistogramdiv");
     root.setThemes([am5themes_Animated.new(root)]);
 
-    // Create the chart
     const chart = root.container.children.push(
         am5xy.XYChart.new(root, {
             panX: false,
             panY: false,
             wheelX: "panX",
             wheelY: "zoomX",
-            layout: root.verticalLayout,
-            tooltip: am5.Tooltip.new(root, {}) // Add a chart-level tooltip
+            layout: root.verticalLayout
         })
     );
 
-    // Create X-axis for age categories (bins)
+    // Define age groups
+    const ageGroups = [
+        { min: 30, max: 39, label: "30-39" },
+        { min: 40, max: 49, label: "40-49" },
+        { min: 50, max: 59, label: "50-59" },
+        { min: 60, max: 69, label: "60-69" },
+        { min: 70, max: 79, label: "70-79" },
+        { min: 80, max: 89, label: "80-89" },
+    ];
+
     const xAxis = chart.xAxes.push(
         am5xy.CategoryAxis.new(root, {
-            categoryField: "ageCategory",
+            categoryField: "ageGroup",
             renderer: am5xy.AxisRendererX.new(root, {
-                minGridDistance: 30 // Adjust as needed for label visibility
+                minGridDistance: 30
             }),
-            tooltip: am5.Tooltip.new(root, { labelText: "{categoryX}" })
+            tooltip: am5.Tooltip.new(root, {})
         })
     );
 
-    // Create Y-axis for laureate count
     const yAxis = chart.yAxes.push(
         am5xy.ValueAxis.new(root, {
             renderer: am5xy.AxisRendererY.new(root, {}),
-            tooltip: am5.Tooltip.new(root, { labelText: "{valueY}" })
+            min: 0, // Ensure Y axis starts at 0
+            title: am5.Label.new(root, { // Add Y-axis title
+                text: "Number of Laureates",
+                rotation: -90,
+                y: am5.p50,
+                centerX: am5.p50
+            })
         })
     );
-    yAxis.children.moveValue(am5.Label.new(root, { text: "Number of Laureates", rotation: -90, y: am5.p50, centerX: am5.p50 }), 0);
+    yAxis.get("renderer").labels.template.setAll({
+        minGridDistance: 20 // Ensure integer values by adjusting grid distance
+    });
 
 
-    // Create series (columns for the histogram)
     const series = chart.series.push(
         am5xy.ColumnSeries.new(root, {
             name: "Laureates by Age",
             xAxis: xAxis,
             yAxis: yAxis,
             valueYField: "count",
-            categoryXField: "ageCategory",
+            categoryXField: "ageGroup",
             tooltip: am5.Tooltip.new(root, {
-                labelText: "{categoryX}: {valueY} laureates"
+                labelText: "{valueY} laureates"
             })
         })
     );
+    
     series.columns.template.setAll({ cornerRadiusTL: 5, cornerRadiusTR: 5 });
+    series.columns.template.adapters.add("fill", function (fill, target) {
+      return chart.get("colors").getIndex(series.columns.indexOf(target));
+    });
+
+    series.columns.template.adapters.add("stroke", function (stroke, target) {
+      return chart.get("colors").getIndex(series.columns.indexOf(target));
+    });
 
 
-    // Function to parse birth dates (handle YYYY-MM-DD, YYYY-00-00, MM/DD/YYYY)
-    function parseBirthYear(bornDateStr) {
-        if (!bornDateStr || bornDateStr === "0000-00-00") return null;
+    window.updateAgeHistogram = function () {
+        const countrySelectValue = document.getElementById("country-age-select") ? document.getElementById("country-age-select").value : "All";
+        const country = countrySelectValue === "map" ? window.selectedCountryAgeHistogram : countrySelectValue;
 
-        let year;
-        if (bornDateStr.includes('-')) { // YYYY-MM-DD or YYYY-00-00
-            year = parseInt(bornDateStr.split('-')[0], 10);
-        } else if (bornDateStr.includes('/')) { // MM/DD/YYYY
-            const parts = bornDateStr.split('/');
-            year = parseInt(parts[2], 10);
-        } else if (/^\d{4}$/.test(bornDateStr)) { // YYYY
-             year = parseInt(bornDateStr, 10);
-        } else {
-            return null; // Unknown format
-        }
-        return isNaN(year) ? null : year;
-    }
-
-    // Function to calculate age at award and prepare data for histogram
-    function prepareHistogramData(data, country) {
-        const ageData = data.map(laureate => {
-            const awardYear = parseInt(laureate.year, 10);
-            const birthYear = parseBirthYear(laureate.born);
-
-            if (laureate.gender === 'org') return null; // Skip organizations
-
-            if (!isNaN(awardYear) && birthYear) {
-                const age = awardYear - birthYear;
-                if (age >= 0 && age < 120) { // Filter out unreasonable ages
-                    return { ...laureate, ageAtAward: age };
-                }
-            }
-            return null;
-        }).filter(laureate => laureate !== null); // Remove nulls (missing data, orgs, or bad age)
-
-        const filteredByCountry = country === "All" ? ageData : ageData.filter(l => l.bornCountry === country);
-
-        // Group by age bins (e.g., 20-29, 30-39, ...)
-        const ageBins = {
-            "20-29": 0, "30-39": 0, "40-49": 0, "50-59": 0,
-            "60-69": 0, "70-79": 0, "80-89": 0, "90+": 0
-        };
-
-        filteredByCountry.forEach(laureate => {
-            const age = laureate.ageAtAward;
-            if (age >= 20 && age <= 29) ageBins["20-29"]++;
-            else if (age >= 30 && age <= 39) ageBins["30-39"]++;
-            else if (age >= 40 && age <= 49) ageBins["40-49"]++;
-            else if (age >= 50 && age <= 59) ageBins["50-59"]++;
-            else if (age >= 60 && age <= 69) ageBins["60-69"]++;
-            else if (age >= 70 && age <= 79) ageBins["70-79"]++;
-            else if (age >= 80 && age <= 89) ageBins["80-89"]++;
-            else if (age >= 90) ageBins["90+"]++;
+        const filteredLaureates = allLaureateData.filter(laureate => {
+            return country === "All" || laureate.country === country;
         });
 
-        return Object.entries(ageBins).map(([ageCategory, count]) => ({
-            ageCategory,
+        const ageData = filteredLaureates.map(laureate => ({
+            ...laureate,
+            age: laureate.awardYear - laureate.bornYear
+        }));
+
+        // Group by age ranges
+        const groupedByAge = {};
+        ageGroups.forEach(group => {
+            groupedByAge[group.label] = 0; // Initialize all defined groups
+        });
+
+        ageData.forEach(laureate => {
+            for (const group of ageGroups) {
+                if (laureate.age >= group.min && laureate.age <= group.max) {
+                    groupedByAge[group.label]++;
+                    break;
+                }
+            }
+        });
+        
+        const chartData = Object.entries(groupedByAge).map(([ageGroup, count]) => ({
+            ageGroup,
             count
         }));
-    }
 
-    // Global function to update the histogram
-    window.updateAgeHistogram = function () {
-        const country = window.selectedCountryAgeHistogram || "All"; // Use global country
-        const histogramChartData = prepareHistogramData(allNobelData, country);
-
-        xAxis.data.setAll(histogramChartData);
-        series.data.setAll(histogramChartData);
-
+        xAxis.data.setAll(chartData);
+        series.data.setAll(chartData);
         series.appear(1000);
         chart.appear(1000, 100);
     };
 
-    // Load the CSV data (using d3 or fetch API)
-    // This part will be refined in step 4 (Update filter_data.js)
-    // For now, we'll use a placeholder or assume data is loaded elsewhere.
-    // If 'filter_data.js' makes data globally available (e.g. window.allNobelData), use that.
-    // Otherwise, we might need to fetch it here.
-    
-    // Example of how it might be loaded if filter_data.js is updated:
-    if (window.allLaureateDataPromise) {
-        window.allLaureateDataPromise.then(data => {
-            allNobelData = data;
-            window.updateAgeHistogram(); // Initial render after data is loaded
-        }).catch(error => {
-            console.error("Error loading Nobel data for age histogram:", error);
+    // Initial render
+    // Check if the country-age-select element exists before adding event listener
+    if (document.getElementById("country-age-select")) {
+        document.getElementById("country-age-select").addEventListener("change", function () {
+            const val = this.value;
+            window.selectedCountryAgeHistogram = val === "map" ? window.selectedCountryAgeHistogram : val;
+            window.updateAgeHistogram();
         });
-    } else {
-        // Fallback or simplified loading for now if global promise isn't ready
-        // This will be replaced by proper data loading in step 4
-        console.warn("Age Histogram: Global Nobel data not yet available. Using empty data or mock.");
-        // fetch("nobel_laureates_data.csv") // Relative path might be tricky from here
-        //     .then(response => response.text())
-        //     .then(csvData => {
-        //         // Basic CSV parsing (replace with a robust library like d3-dsv if possible)
-        //         const parsed = csvData.split('\n').map(row => row.split(','));
-        //         const headers = parsed[0];
-        //         allNobelData = parsed.slice(1).map(row => {
-        //             let obj = {};
-        //             headers.forEach((header, i) => obj[header.trim()] = row[i] ? row[i].trim() : undefined);
-        //             return obj;
-        //         }).filter(row => row.year); // Basic filter for valid rows
-        //         window.updateAgeHistogram(); // Initial render
-        //     }).catch(error => console.error("Error fetching CSV for age histogram:", error));
-         window.updateAgeHistogram(); // Call with empty data for now
     }
 
+
+    // Call updateAgeHistogram initially to render the chart with "All" data or default selection
+    window.updateAgeHistogram(); 
 });

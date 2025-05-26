@@ -30,7 +30,7 @@ body {
 }
 
 .chart-box {
-    width: 45%;
+    width: 32%; /* Adjusted from 45% to fit three charts */
 }
 
 .chart-box h3 {
